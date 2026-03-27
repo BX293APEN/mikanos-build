@@ -1,5 +1,11 @@
 ---
 - hosts: all
+  vars:
+    osbook_dir: "{{ ansible_env.HOME }}/osbook"
+    devenv_dir: "{{ osbook_dir }}/devenv"
+    edk2_dir: "{{ osbook_dir }}/edk2"
+    llvm_version: "14"
+
   tasks:
     - name: ensure development tools are at the latest version
       become: yes
@@ -32,80 +38,28 @@
       apt: name=qemu-system-gui state=latest install_recommends=no
       when: qemu_gui_result.rc == 0
 
-    - name: set llvm 14 as default
-      become: yes
-      alternatives:
-        name: "{{ item }}"
-        link: "/usr/bin/{{ item }}"
-        path: "/usr/bin/{{ item }}-14"
-      with_items:
-        - llvm-PerfectShuffle
-        - llvm-ar
-        - llvm-as
-        - llvm-bcanalyzer
-        - llvm-cat
-        - llvm-cfi-verify
-        - llvm-config
-        - llvm-cov
-        - llvm-c-test
-        - llvm-cvtres
-        - llvm-cxxdump
-        - llvm-cxxfilt
-        - llvm-diff
-        - llvm-dis
-        - llvm-dlltool
-        - llvm-dwarfdump
-        - llvm-dwp
-        - llvm-exegesis
-        - llvm-extract
-        - llvm-lib
-        - llvm-link
-        - llvm-lto
-        - llvm-lto2
-        - llvm-mc
-        - llvm-mca
-        - llvm-modextract
-        - llvm-mt
-        - llvm-nm
-        - llvm-objcopy
-        - llvm-objdump
-        - llvm-opt-report
-        - llvm-pdbutil
-        - llvm-profdata
-        - llvm-ranlib
-        - llvm-rc
-        - llvm-readelf
-        - llvm-readobj
-        - llvm-rtdyld
-        - llvm-size
-        - llvm-split
-        - llvm-stress
-        - llvm-strings
-        - llvm-strip
-        - llvm-symbolizer
-        - llvm-tblgen
-        - llvm-undname
-        - llvm-xray
-        - ld.lld
-        - lld-link
-        - clang
-        - clang++
-        - clang-cpp
+    # NOTE: システム全体の alternatives は変更しません。
+    # 各ビルドスクリプト・Makefile で clang-14 / lld-14 を直接指定します。
 
     - name: clone EDK II repository
       git:
         repo: "https://github.com/tianocore/edk2.git"
-        dest: "{{ ansible_env.HOME }}/edk2"
+        dest: "{{ edk2_dir }}"
         version: "edk2-stable202208"
 
     - name: build EDK II base tools
       make:
-        chdir: "{{ ansible_env.HOME }}/edk2/BaseTools/Source/C"
+        chdir: "{{ edk2_dir }}/BaseTools/Source/C"
+
+    - name: ensure devenv directory exists
+      file:
+        path: "{{ devenv_dir }}"
+        state: directory
 
     - name: download standard libraries
       unarchive:
         src: "https://github.com/uchan-nos/mikanos-build/releases/download/v2.0/x86_64-elf.tar.gz"
-        dest: "{{ ansible_env.HOME }}/osbook/devenv"
+        dest: "{{ devenv_dir }}"
         remote_src: yes
 
     - name: configure display variable if WSL1

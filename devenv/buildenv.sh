@@ -1,9 +1,15 @@
 # Usage: source buildenv.sh
+# このスクリプトは osbook/devenv/ からの相対位置で動作します。
+# OSBOOK_DIR 環境変数で上書き可能です。
 
-BASEDIR="$HOME/osbook/devenv/x86_64-elf"
-EDK2DIR="$HOME/edk2"
+# スクリプト自身の場所からプロジェクトルートを自動検出
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+OSBOOK_DIR="${OSBOOK_DIR:-$(dirname "$_SCRIPT_DIR")}"
 
-if [ ! -d $BASEDIR ]
+BASEDIR="$OSBOOK_DIR/devenv/x86_64-elf"
+EDK2DIR="${EDK2DIR:-$OSBOOK_DIR/edk2}"
+
+if [ ! -d "$BASEDIR" ]
 then
     echo "$BASEDIR が存在しません。"
     echo "以下のファイルを手動でダウンロードし、$(dirname $BASEDIR)に展開してください。"
@@ -16,4 +22,3 @@ else
     -DEFIAPI='__attribute__((ms_abi))'"
     export LDFLAGS="-L$BASEDIR/lib"
 fi
-
