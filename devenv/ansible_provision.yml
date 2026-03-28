@@ -6,7 +6,7 @@
     osbook_dir: "{{ (run_dir | default(real_home ~ '/Programs/mikanos-build/devenv')) | dirname }}"
     devenv_dir: "{{ osbook_dir }}/devenv"
     edk2_dir: "{{ osbook_dir }}/edk2"
-    llvm_version: "14"
+    llvm_version: "18"
 
   tasks:
     - name: ensure development tools are at the latest version
@@ -14,9 +14,9 @@
       apt:
         name:
           - build-essential
-          - llvm-14-dev
-          - lld-14
-          - clang-14
+          - llvm-18-dev
+          - lld-18
+          - clang-18
           - nasm
           - acpica-tools
           - uuid-dev
@@ -66,7 +66,7 @@
         mode: "0755"
         remote_src: yes
 
-    - name: patch EDK II VfrCompile for GCC 14 compatibility
+    - name: patch EDK II VfrCompile for GCC 18 compatibility
       command: python3 "{{ devenv_dir }}/patch_edk2.py" "{{ edk2_dir }}"
       register: vfrcompile_patch
       changed_when: "'patched:' in vfrcompile_patch.stdout"
