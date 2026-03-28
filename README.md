@@ -24,7 +24,7 @@ MikanOS のビルド手順は大きく次の 4 段階です。
     $ sudo apt update
     $ sudo apt install git
     $ cd $HOME
-    $ git clone https://github.com/uchan-nos/mikanos-build.git osbook
+    $ git clone https://github.com/uchan-nos/mikanos-build.git
 
 ### 開発ツールの導入
 
@@ -35,8 +35,8 @@ Ansible を使ってセットアップを行うと楽です。
 注意）`ansible_provision.yml` は LLVM 14 をインストールします。各ビルドスクリプトおよび Makefile は `clang-14` / `lld-14` をバージョン付きで直接指定するため，システム全体のデフォルトは変更しません。
 
     $ sudo apt install ansible
-    $ cd $HOME/osbook/devenv
-    $ ansible-playbook -K -i ansible_inventory ansible_provision.yml
+    $ cd mikanos-build/devenv
+    $ sudo ansible-playbook -K -i ansible_inventory ansible_provision.yml -e "run_dir=$(pwd)"
 
 セットアップが上手くいけば `iasl` というコマンドがインストールされ，`$HOME/osbook/edk2` というディレクトリが生成されているはずです。
 これらがなければセットアップが失敗しています。
