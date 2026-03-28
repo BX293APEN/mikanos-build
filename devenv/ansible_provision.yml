@@ -1,13 +1,9 @@
 ---
 - hosts: all
   vars:
-    # sudo -E が使えない環境向け:
-    # SUDO_USER が設定されていればそのホームを使い、なければ ansible_env.HOME を使う
     real_user: "{{ ansible_env.SUDO_USER | default(ansible_env.USER) }}"
     real_home: "{{ '/home/' ~ real_user if ansible_env.SUDO_USER is defined else ansible_env.HOME }}"
-
     osbook_dir: "{{ (run_dir | default(real_home ~ '/Programs/mikanos-build/devenv')) | dirname }}"
-
     devenv_dir: "{{ osbook_dir }}/devenv"
     edk2_dir: "{{ osbook_dir }}/edk2"
     llvm_version: "14"
@@ -44,9 +40,6 @@
       apt: name=qemu-system-gui state=latest install_recommends=no
       when: qemu_gui_result.rc == 0
 
-    # NOTE: システム全体の alternatives は変更しません。
-    # 各ビルドスクリプト・Makefile で clang-14 / lld-14 を直接指定します。
-
     - name: clone EDK II repository
       git:
         repo: "https://github.com/tianocore/edk2.git"
@@ -58,13 +51,22 @@
         - edk2_git.failed
         - "'Local modifications' not in (edk2_git.msg | default(''))"
 
-    # GCC 14 では typedef void (*WildFunc)(); が strict-prototypes エラーになる。
-    # YAML+shell のバックスラッシュエスケープ問題を避けるため
-    # devenv/patch_edk2.py でバイナリ置換する。
-    - name: patch EDK II VfrCompile for GCC 14 compatibility
-      command: python3 patch_edk2.py "{{ edk2_dir }}"
+    # パッチ対象ファイルを常にクリーンな状態に戻す
+    - name: reset EDK II Pccts sources to clean state before patching
+      command: git checkout -- BaseTools/Source/C/VfrCompile/Pccts/
       args:
-        chdir: "{{ playbook_dir }}"
+        chdir: "{{ edk2_dir }}"
+
+    # patch_edk2.py を devenv/ から同じ devenv/ へコピー（playbook_dir 経由で確実に配置）
+    - name: deploy patch_edk2.py from devenv
+      copy:
+        src: "{{ playbook_dir }}/patch_edk2.py"
+        dest: "{{ devenv_dir }}/patch_edk2.py"
+        mode: "0755"
+        remote_src: yes
+
+    - name: patch EDK II VfrCompile for GCC 14 compatibility
+      command: python3 "{{ devenv_dir }}/patch_edk2.py" "{{ edk2_dir }}"
       register: vfrcompile_patch
       changed_when: "'patched:' in vfrcompile_patch.stdout"
 
