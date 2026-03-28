@@ -28,6 +28,20 @@
           - ca-certificates
         state: latest
         install_recommends: no
+    
+    - name: setup symlinks
+      become: yes
+      file:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        state: link
+      loop:
+        - { src: /usr/bin/llvm-ar-18, dest: /usr/bin/llvm-ar }
+        - { src: /usr/bin/llvm-ranlib-18, dest: /usr/bin/llvm-ranlib }
+        - { src: /usr/bin/ld.lld-18, dest: /usr/bin/ld.lld }
+        - { src: /usr/bin/lld-link-18, dest: /usr/bin/lld-link }
+        - { src: /usr/bin/clang-18, dest: /usr/bin/clang }
+        - { src: /usr/bin/clang++-18, dest: /usr/bin/clang++ }
 
     - name: check whether qemu-system-gui exists
       command: dpkg-query --show qemu-system-gui

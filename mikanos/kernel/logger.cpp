@@ -1,5 +1,6 @@
 #include "logger.hpp"
 
+#include <cstdarg>
 #include <cstddef>
 #include <cstdio>
 
