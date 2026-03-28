@@ -1,7 +1,11 @@
 ---
 - hosts: all
   vars:
-    osbook_dir: "{{ ansible_env.HOME }}/osbook"
+    # sudo -E が使えない環境向け:
+    # SUDO_USER が設定されていればそのホームを使い、なければ ansible_env.HOME を使う
+    real_user: "{{ ansible_env.SUDO_USER | default(ansible_env.USER) }}"
+    real_home: "{{ '/home/' + real_user if ansible_env.SUDO_USER is defined else ansible_env.HOME }}"
+    osbook_dir: "{{ real_home }}/osbook"
     devenv_dir: "{{ osbook_dir }}/devenv"
     edk2_dir: "{{ osbook_dir }}/edk2"
     llvm_version: "14"
@@ -22,7 +26,7 @@
           - qemu-utils
           - xauth
           - unzip
-          - python3-distutils
+          - python3-setuptools
           - ca-certificates
         state: latest
         install_recommends: no
@@ -46,9 +50,30 @@
         repo: "https://github.com/tianocore/edk2.git"
         dest: "{{ edk2_dir }}"
         version: "edk2-stable202208"
+        force: no
+      register: edk2_git
+      failed_when:
+        - edk2_git.failed
+        - "'Local modifications' not in (edk2_git.msg | default(''))"
+
+    # GCC 14 では typedef void (*WildFunc)(); が strict-prototypes エラーになる。
+    # YAML+shell のバックスラッシュエスケープ問題を避けるため
+    # devenv/patch_edk2.py でバイナリ置換する。
+    - name: patch EDK II VfrCompile for GCC 14 compatibility
+      command: python3 patch_edk2.py "{{ edk2_dir }}"
+      args:
+        chdir: "{{ playbook_dir }}"
+      register: vfrcompile_patch
+      changed_when: "'patched:' in vfrcompile_patch.stdout"
+
+    - name: clean EDK II base tools build cache after patch
+      shell: make clean
+      args:
+        chdir: "{{ edk2_dir }}/BaseTools/Source/C"
 
     - name: build EDK II base tools
-      make:
+      shell: make
+      args:
         chdir: "{{ edk2_dir }}/BaseTools/Source/C"
 
     - name: ensure devenv directory exists
@@ -64,14 +89,14 @@
 
     - name: configure display variable if WSL1
       lineinfile:
-        path: "{{ ansible_env.HOME }}/.profile"
+        path: "{{ real_home }}/.profile"
         regexp: "^export DISPLAY="
         line: "export DISPLAY=:0"
       when: "'DISPLAY' not in ansible_env and 'WSLENV' in ansible_env and 'WSL_INTEROP' not in ansible_env"
 
     - name: configure display variable if WSL2
       lineinfile:
-        path: "{{ ansible_env.HOME }}/.profile"
+        path: "{{ real_home }}/.profile"
         regexp: "^export DISPLAY="
         line: "export DISPLAY=$(awk '/nameserver / {print $2; exit}' /etc/resolv.conf 2>/dev/null):0"
       when: "'DISPLAY' not in ansible_env and 'WSL_INTEROP' in ansible_env"
