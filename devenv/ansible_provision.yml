@@ -4,8 +4,9 @@
     # sudo -E が使えない環境向け:
     # SUDO_USER が設定されていればそのホームを使い、なければ ansible_env.HOME を使う
     real_user: "{{ ansible_env.SUDO_USER | default(ansible_env.USER) }}"
-    real_home: "{{ '/home/' + real_user if ansible_env.SUDO_USER is defined else ansible_env.HOME }}"
-    osbook_dir: "{{ real_home }}/osbook"
+    real_home: "{{ '/home/' ~ real_user if ansible_env.SUDO_USER is defined else ansible_env.HOME }}"
+
+    osbook_dir: "{{ (run_dir | default(real_home ~ '/Programs/mikanos-build/devenv')).rstrip('/\\') | regex_replace('[/\\\\][^/\\\\]+$', '') }}"
     devenv_dir: "{{ osbook_dir }}/devenv"
     edk2_dir: "{{ osbook_dir }}/edk2"
     llvm_version: "14"
