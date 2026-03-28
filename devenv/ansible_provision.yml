@@ -45,6 +45,7 @@
         repo: "https://github.com/tianocore/edk2.git"
         dest: "{{ edk2_dir }}"
         version: "edk2-stable202208"
+        recursive: yes
         force: no
       register: edk2_git
       failed_when:
