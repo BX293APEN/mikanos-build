@@ -1,5 +1,0 @@
-sudo apt install git ansible
-
-git clone https://github.com/BX293APEN/mikanos-build.git
-cd mikanos-build/devenv
-sudo ansible-playbook -K -i ansible_inventory ansible_provision.yml -e "run_dir=$(pwd)"
